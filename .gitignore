@@ -1,0 +1,5 @@
+/.coverage
+/build
+/van_api.egg-info
+/*.egg
+/htmlcov
