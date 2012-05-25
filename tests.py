@@ -233,6 +233,20 @@ class TestAPI(TestCase):
         one.request.assert_called_once_with('DELETE', '/')
         self.assertEqual(result, one.request())
 
+    def test_patch(self):
+        one = self._one()
+        one.request = mock.Mock()
+        result = one.PATCH('/', 'data')
+        one.request.assert_called_once_with('PATCH', '/', 'data')
+        self.assertEqual(result, one.request())
+
+    def test_post(self):
+        one = self._one()
+        one.request = mock.Mock()
+        result = one.POST('/', 'data')
+        one.request.assert_called_once_with('POST', '/', 'data')
+        self.assertEqual(result, one.request())
+
     def test_http_calls_handle(self):
         one = self._one(response=dict(
             headers=[('Header1', 'value'), ],

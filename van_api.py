@@ -132,6 +132,14 @@ class API(object):
         """DELETE a resource"""
         return self.request('DELETE', url)
 
+    def POST(self, url, data):
+        """POST a resource"""
+        return self.request('POST', url, data)
+
+    def PATCH(self, url, data):
+        """PATCH a resource"""
+        return self.request('PATCH', url, data)
+
     def request(self, method, url, data=None):
         """Make an HTTP request to the API.
 
