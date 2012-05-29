@@ -272,4 +272,6 @@ class API(object):
                 return v
 
     def _deserialize(self, data, content_type):
+        if _PY3:
+            data = data.decode('ascii')
         return _json_loads(data)

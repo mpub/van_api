@@ -270,7 +270,7 @@ class TestAPI(TestCase):
         one = self._one()
         result = one.handle('request', dict(
             headers=[('content-type', 'application/json', )],
-            body='123',
+            body='123'.encode('ascii'),
             status=200))
         self.assertEqual(result, 123)
 
@@ -279,7 +279,7 @@ class TestAPI(TestCase):
         one = self._one()
         result = one.handle('request', dict(
             headers=[('content-type', 'application/json', )],
-            body='"unicode"',
+            body='"unicode"'.encode('ascii'),
             status=200))
         self.assertTrue(isinstance(result, _unicode))
         self.assertEqual(result, _unicode('unicode'))
@@ -304,7 +304,7 @@ class TestAPI(TestCase):
             body=json.dumps({'error': 'bad_parameters',
                     'error_description': 'Developer description of error',
                     'error_uri': 'http://example.com/errorpage.html',
-                    'error_info': {'key': 'value'}}),
+                    'error_info': {'key': 'value'}}).encode('ascii'),
             status=400))
 
     def test_handle_retry_on_503(self):
@@ -379,3 +379,10 @@ class TestAPI(TestCase):
                 handler=one.handle
                 )
         self.assertEqual(result, retry())
+
+    def test_deserialize_json(self):
+        body = '{"abc": 1}'.encode('ascii')
+        one = self._one()
+        self.assertEqual(
+                one._deserialize(body, 'application/json'),
+                {'abc': 1})
