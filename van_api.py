@@ -82,6 +82,8 @@ class Retryable(Exception):
 class Credentials(object):
     """Abstract class representing credentials to access the API"""
 
+    token_host = 'go.vanguardistas.net'
+
     def access_token(self, api):
         """This method is called to get the access token.
 
@@ -92,7 +94,11 @@ class Credentials(object):
     def _token(self, api, data):
         data = urlencode(data)
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        return api.retry(api.http, 'POST', '/oauth/token', host='go.vanguardistas.net', body=data, headers=headers, handler=api.handle)
+        return api.retry(api.http, 'POST', '/oauth/token',
+                host=self.token_host,
+                body=data,
+                headers=headers,
+                handler=api.handle)
 
 
 class ClientCredentialsGrant(Credentials):
