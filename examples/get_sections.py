@@ -4,7 +4,7 @@ from pprint import pprint
 
 import van_api
 
-logging.basicConfig(level=logging.Info, format='%(levelname)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
 
 # Connect to the API
 # The example API key here allows using the http://demo.metropublisher.com/ api as a public user
