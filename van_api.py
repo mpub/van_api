@@ -233,7 +233,9 @@ class API(object):
                 return func(*args, **kw)
             except Retryable:
                 if self.logger is not None:
-                    self.logger.exception('Attempt %s failed' % attempt)
+                    self.logger.warn('Attempt %s failed',
+                            attempt,
+                            exc_info=True)
                 if attempt >= 5:
                     exc = sys.exc_info()[1]
                     exc.reraise()

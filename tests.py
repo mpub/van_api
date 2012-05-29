@@ -96,13 +96,11 @@ class TestAPI(TestCase):
         func.side_effect = MyException('oops')
         api = self._one(logger=logger)
         result = self.assertRaises(Exception, api.retry, func, 55, a=42)
+        expected = [call('Attempt %s failed', n + 1, exc_info=True) for n
+                in range(5)]
         self.assertEqual(
-                logger.exception.call_args_list,
-                [call('Attempt 1 failed'),
-                    call('Attempt 2 failed'),
-                    call('Attempt 3 failed'),
-                    call('Attempt 4 failed'),
-                    call('Attempt 5 failed')])
+                logger.warn.call_args_list,
+                expected)
 
     def test_retry_non_retryable_exception(self):
         func = mock.Mock()
