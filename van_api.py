@@ -217,6 +217,8 @@ class API(object):
             data = self._deserialize(response['body'], content_type)
         return data
 
+    _handle_status_201 = _handle_status_200
+
     def _get_conn(self, host=None):
         if host is None:
             host = self.host
