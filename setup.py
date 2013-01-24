@@ -15,6 +15,14 @@ if sys.version_info[:2] == (2, 5):
 if sys.version_info[:2] == (2, 4):
     install_requires.append('simplejson < 1.9999')
 
+tests_require = [
+        'mock'
+        ]
+
+testing_extra = tests_require + [
+        'coverage'
+        ]
+
 setup(name="van_api",
       version="1.0",
       description="Utilities to ease access to the Vanguardistas APIs from python.",
@@ -30,13 +38,16 @@ setup(name="van_api",
           "Operating System :: OS Independent",
           "License :: OSI Approved :: BSD License",
           "Programming Language :: Python :: 2",
-          "Programming Language :: Python :: 2.4",
           "Programming Language :: Python :: 2.5",
           "Programming Language :: Python :: 2.6",
           "Programming Language :: Python :: 2.7",
           "Programming Language :: Python :: 3",
           "Programming Language :: Python :: 3.2",
+          "Programming Language :: Python :: 3.3",
           ],
+      extras_require = {
+          'testing':testing_extra,
+          },
       test_suite='tests',
-      tests_require='mock',
+      tests_require=tests_require,
       )
