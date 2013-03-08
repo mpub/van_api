@@ -111,7 +111,14 @@ class TestAPI(TestCase):
         one = self._one()
         one.request = mock.Mock()
         result = one.POST('/', 'data')
-        one.request.assert_called_once_with('POST', '/', 'data')
+        one.request.assert_called_once_with('POST', '/', 'data', content_type=None)
+        self.assertEqual(result, one.request())
+
+    def test_post_with_ct(self):
+        one = self._one()
+        one.request = mock.Mock()
+        result = one.POST('/', 'data', content_type="image/jpeg")
+        one.request.assert_called_once_with('POST', '/', 'data', content_type="image/jpeg")
         self.assertEqual(result, one.request())
 
     def test_handle_ok(self):

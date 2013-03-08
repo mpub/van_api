@@ -208,15 +208,15 @@ class API(_HTTPConnection):
         """DELETE a resource"""
         return self.request('DELETE', url)
 
-    def POST(self, url, data):
+    def POST(self, url, data, content_type=None):
         """POST a resource"""
-        return self.request('POST', url, data)
+        return self.request('POST', url, data, content_type=content_type)
 
     def PATCH(self, url, data):
         """PATCH a resource"""
         return self.request('PATCH', url, data)
 
-    def request(self, method, url, data=None):
+    def request(self, method, url, data=None, content_type=None):
         """Make an HTTP request to the API.
 
         The request will be retried on retryable errors (e.g. HTTP connection
@@ -230,7 +230,7 @@ class API(_HTTPConnection):
         headers = {}
         if access_token is not None:
             headers['Authorization'] = self._auth_header(access_token)
-        data, data_headers = self._serialize(data)
+        data, data_headers = self._serialize(data, content_type)
         headers.update(data_headers)
         return self.conn.http_retry(method, url, body=data, headers=headers, handler=self.handle)
 
@@ -279,11 +279,13 @@ class API(_HTTPConnection):
         assert token['token_type'] == 'bearer'
         return 'bearer %s' % token['access_token']
 
-    def _serialize(self, data):
+    def _serialize(self, data, content_type):
         if data is None:
             return None, {}
-        data = _json_dumps(data)
-        return data, {'Content-Type': 'application/json'}
+        if content_type is None:
+            data = _json_dumps(data)
+            content_type = 'application/json'
+        return data, {'Content-Type': content_type}
 
     def _get_header(self, header, headers):
         header = header.lower()
