@@ -238,6 +238,19 @@ class TestAPI(TestCase):
                 )
         self.assertEqual(result, retry())
 
+    def test_request_ok_default_headers(self):
+        one = self._one(default_headers={'Cache-Control': 'no-cache'})
+        one.conn.http_retry = retry = mock.Mock()
+        result = one.request('GET', '/')
+        retry.assert_called_once_with(
+                'GET',
+                '/',
+                body=None,
+                headers={'Cache-Control': 'no-cache'},
+                handler=one.handle
+                )
+        self.assertEqual(result, retry())
+
     def test_request_ok_no_data(self):
         one = self._one()
         one.conn.http_retry = retry = mock.Mock()

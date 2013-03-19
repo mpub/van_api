@@ -191,10 +191,13 @@ class API(_HTTPConnection):
 
     _access_token = None
 
-    def __init__(self, host, credentials=None, logger=logging, **kw):
+    def __init__(self, host, credentials=None, logger=logging, default_headers=None, **kw):
         self.conn = _HTTPConnection(host, logger=logger, **kw)
         self.logger = logger
         self._creds = credentials
+        if default_headers is None:
+            default_headers = {}
+        self.default_headers = default_headers
 
     def GET(self, url):
         """GET a resource"""
@@ -227,7 +230,7 @@ class API(_HTTPConnection):
         for later requests.
         """
         access_token = self._get_access_token()
-        headers = {}
+        headers = self.default_headers.copy()
         if access_token is not None:
             headers['Authorization'] = self._auth_header(access_token)
         data, data_headers = self._serialize(data, content_type)
