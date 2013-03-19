@@ -44,15 +44,13 @@ class TestClientCredentialsGrant(TestCase):
 
 class TestAPI(TestCase):
 
-    def _one(self, host='apihost', response=None, logger=None):
+    def _one(self, host='apihost', response=None, **kw):
         try:
             from http.client import HTTPSConnection
         except ImportError:
             #python 2
             from httplib import HTTPSConnection
-        from van_api import Credentials, API
-        creds = mock.Mock(spec_set=Credentials)
-        creds.access_token.return_value = 'my_token'
+        from van_api import API
         conn = mock.Mock(spec_set=HTTPSConnection)
         if response is not None:
             resp = conn().getresponse()
@@ -61,7 +59,7 @@ class TestAPI(TestCase):
             resp.status = response['status']
             resp.reason = response.get('reason', 'dummy reason')
             conn.reset_mock()
-        return API(host, creds, logger=logger, conn_factory=conn)
+        return API(host, conn_factory=conn, **kw)
 
     def test_init_defaults(self):
         try:
@@ -190,7 +188,10 @@ class TestAPI(TestCase):
         self.assertEqual(one._access_token, None)
 
     def test_get_access_token(self):
-        one = self._one()
+        from van_api import Credentials
+        creds = mock.Mock(spec_set=Credentials)
+        creds.access_token.return_value = {'token_type': 'bearer', 'access_token': 'my_token'}
+        one = self._one(credentials=creds)
         self.assertEqual(one._access_token, None)
         result = one._get_access_token()
         one._creds.access_token.assert_called_once_with(one)
@@ -198,45 +199,54 @@ class TestAPI(TestCase):
         self.assertEqual(one._access_token, one._creds.access_token())
 
     def test_get_access_token_cached(self):
-        one = self._one()
-        one._access_token = 'cached'
+        from van_api import Credentials
+        creds = mock.Mock(spec_set=Credentials)
+        creds.access_token.return_value = {'token_type': 'bearer', 'access_token': 'my_token'}
+        one = self._one(credentials=creds)
+        one._access_token = cached = {'token_type': 'bearer', 'access_token': 'cached'}
         result = one._get_access_token()
         self.assertFalse(one._creds.access_token.called)
-        self.assertEqual(one._access_token, 'cached')
+        self.assertEqual(one._access_token, cached)
 
-    @mock.patch('van_api.API._get_access_token')
-    def test_request_ok_data(self, _get_access_token):
-        _get_access_token.return_value = {
-                'token_type': 'bearer',
-                'access_token': 'value'}
+    def test_request_ok_data(self):
         one = self._one()
         one.conn.http_retry = retry = mock.Mock()
         result = one.request('PUT', '/', 123)
-        _get_access_token.assert_called_once_with()
+        retry.assert_called_once_with(
+                'PUT',
+                '/',
+                body='123',
+                headers={'Content-Type': 'application/json'},
+                handler=one.handle
+                )
+        self.assertEqual(result, retry())
+
+    def test_request_ok_access_token(self):
+        from van_api import Credentials
+        creds = mock.Mock(spec_set=Credentials)
+        creds.access_token.return_value = {'token_type': 'bearer', 'access_token': 'my_token'}
+        one = self._one(credentials=creds)
+        one.conn.http_retry = retry = mock.Mock()
+        result = one.request('PUT', '/', 123)
         retry.assert_called_once_with(
                 'PUT',
                 '/',
                 body='123',
                 headers={'Content-Type': 'application/json',
-                    'Authorization': 'bearer value'},
+                    'Authorization': 'bearer my_token'},
                 handler=one.handle
                 )
         self.assertEqual(result, retry())
 
-    @mock.patch('van_api.API._get_access_token')
-    def test_request_ok_no_data(self, _get_access_token):
-        _get_access_token.return_value = {
-                'token_type': 'bearer',
-                'access_token': 'value'}
+    def test_request_ok_no_data(self):
         one = self._one()
         one.conn.http_retry = retry = mock.Mock()
         result = one.request('GET', '/')
-        _get_access_token.assert_called_once_with()
         retry.assert_called_once_with(
                 'GET',
                 '/',
                 body=None,
-                headers={'Authorization': 'bearer value'},
+                headers={},
                 handler=one.handle
                 )
         self.assertEqual(result, retry())
