@@ -24,7 +24,7 @@ testing_extra = tests_require + [
         ]
 
 setup(name="van_api",
-      version="1.2",
+      version="1.3",
       description="Utilities to ease access to the Vanguardistas APIs from python.",
       py_modules=['van_api'],
       long_description=README,
