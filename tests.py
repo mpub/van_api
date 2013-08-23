@@ -441,7 +441,6 @@ class Test_HTTPConnection(TestCase):
         resp.read.return_value = ''
         resp.status = 200
         resp.reason = 'OK'
-        conn_factory.reset_mock()
         one = self._one('www.example.com', conn_factory=conn_factory)
         handle = mock.Mock()
         result = one.http('POST', '/', handler=handle)
