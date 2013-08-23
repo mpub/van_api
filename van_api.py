@@ -92,7 +92,7 @@ class _HTTPConnection(object):
         self.logger = logger
         self._conn_factory = conn_factory
 
-    def http(self, method, url, body=None, headers=None, handler=None):
+    def http(self, method, url, body=None, headers=None, handler=None, outfile=None):
         """Send a single HTTP request to the API.
 
         This is a low level method. It fails on all errors.
@@ -107,8 +107,15 @@ class _HTTPConnection(object):
             response = dict(
                     status = resp.status,
                     headers = resp.getheaders(),
-                    body = resp.read(),
                     reason = resp.reason)
+            if outfile is None:
+                response['body'] = resp.read()
+            else:
+                response['body'] = None
+                data = resp.read(8192)
+                while data:
+                    outfile.write(data)
+                    data = resp.read(8192)
         except:
             self._disconnect()
             if self.logger is not None:
@@ -199,9 +206,9 @@ class API(_HTTPConnection):
             default_headers = {}
         self.default_headers = default_headers
 
-    def GET(self, url):
+    def GET(self, url, outfile=None):
         """GET a resource"""
-        return self.request('GET', url)
+        return self.request('GET', url, outfile=outfile)
 
     def PUT(self, url, data):
         """PUT data to a resource"""
@@ -219,7 +226,7 @@ class API(_HTTPConnection):
         """PATCH a resource"""
         return self.request('PATCH', url, data)
 
-    def request(self, method, url, data=None, content_type=None):
+    def request(self, method, url, data=None, content_type=None, outfile=None):
         """Make an HTTP request to the API.
 
         The request will be retried on retryable errors (e.g. HTTP connection
@@ -235,7 +242,7 @@ class API(_HTTPConnection):
             headers['Authorization'] = self._auth_header(access_token)
         data, data_headers = self._serialize(data, content_type)
         headers.update(data_headers)
-        return self.conn.http_retry(method, url, body=data, headers=headers, handler=self.handle)
+        return self.conn.http_retry(method, url, body=data, headers=headers, handler=self.handle, outfile=outfile)
 
     def handle(self, request, response):
         handler = getattr(self, '_handle_status_%s' % response['status'], self._handle_error)

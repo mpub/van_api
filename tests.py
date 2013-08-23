@@ -81,7 +81,7 @@ class TestAPI(TestCase):
         one = self._one()
         one.request = mock.Mock()
         result = one.GET('/')
-        one.request.assert_called_once_with('GET', '/')
+        one.request.assert_called_once_with('GET', '/', outfile=None)
         self.assertEqual(result, one.request())
 
     def test_put(self):
@@ -217,7 +217,8 @@ class TestAPI(TestCase):
                 '/',
                 body='123',
                 headers={'Content-Type': 'application/json'},
-                handler=one.handle
+                handler=one.handle,
+                outfile=None
                 )
         self.assertEqual(result, retry())
 
@@ -234,7 +235,8 @@ class TestAPI(TestCase):
                 body='123',
                 headers={'Content-Type': 'application/json',
                     'Authorization': 'bearer my_token'},
-                handler=one.handle
+                handler=one.handle,
+                outfile=None
                 )
         self.assertEqual(result, retry())
 
@@ -247,7 +249,8 @@ class TestAPI(TestCase):
                 '/',
                 body=None,
                 headers={'Cache-Control': 'no-cache'},
-                handler=one.handle
+                handler=one.handle,
+                outfile=None
                 )
         self.assertEqual(result, retry())
 
@@ -260,7 +263,8 @@ class TestAPI(TestCase):
                 '/',
                 body=None,
                 headers={},
-                handler=one.handle
+                handler=one.handle,
+                outfile=None
                 )
         self.assertEqual(result, retry())
 
@@ -445,4 +449,23 @@ class Test_HTTPConnection(TestCase):
                 {'body': None, 'headers': None, 'host': 'www.example.com', 'url': '/', 'method': 'POST'},
                 {'body': '', 'headers': [('Header1', 'value'), ], 'reason': 'OK', 'status': 200})
         self.assertEqual(result, handle())
+
+    def test_http_with_outfile(self):
+        conn_factory = self._conn_factory()
+        resp = conn_factory().getresponse()
+        resp.getheaders.return_value = [('Header1', 'value'), ]
+        data = ['abc', 'def', '']
+        read_called = []
+        def read(size=None):
+            read_called.append(size)
+            return data.pop(0)
+        resp.read.side_effect = read
+        resp.status = 200
+        resp.reason = 'OK'
+        one = self._one('www.example.com', conn_factory=conn_factory)
+        outfile = mock.Mock()
+        result = one.http('GET', '/', outfile=outfile)
+        self.assertEqual(result, {'status': 200, 'headers': [('Header1', 'value')], 'reason': 'OK', 'body': None})
+        self.assertEqual(outfile.write.call_args_list, [mock.call('abc'), mock.call('def')])
+        self.assertEqual(read_called, [8192, 8192, 8192])
 
