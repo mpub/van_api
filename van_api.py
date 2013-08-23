@@ -28,9 +28,11 @@ _PY3 = sys.version_info[0] == 3
 if _PY3:
     from urllib.parse import urlencode
     import http.client as httplib
+    import urllib.parse as urlparse
 else:
     from urllib import urlencode
     import httplib
+    import urlparse
 
 if _PY3:
     _unicode = str
@@ -97,6 +99,7 @@ class _HTTPConnection(object):
 
         This is a low level method. It fails on all errors.
         """
+        url = self._get_path(url)
         conn = self._get_conn()
         request = dict(method=method, host=self.host, url=url, body=body, headers=headers)
         if self.logger is not None:
@@ -126,6 +129,14 @@ class _HTTPConnection(object):
         if handler is not None:
             response = handler(request, response)
         return response
+
+    def _get_path(self, url):
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
+        if netloc and self.host != netloc:
+            raise AssertionError("Cannot connect to url: %s" % url)
+        if scheme and self._conn_factory is httplib.HTTPSConnection and scheme != 'https':
+            raise AssertionError("Strange scheme: %s" % url)
+        return urlparse.urlunsplit(('', '', path, query, ''))
 
     def _get_conn(self):
         if self._conn is not None:

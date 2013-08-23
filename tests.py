@@ -468,3 +468,16 @@ class Test_HTTPConnection(TestCase):
         self.assertEqual(outfile.write.call_args_list, [mock.call('abc'), mock.call('def')])
         self.assertEqual(read_called, [8192, 8192, 8192])
 
+    def test_http_absolute_url(self):
+        one = self._one('www.example.com')
+        result = one.http('GET', 'https://www.example.com/a/b/c')
+        request = one._conn_factory().request
+        request.assert_called_once_with('GET', '/a/b/c', body=None, headers=None)
+
+    def test_get_path_assertion_error(self):
+        from van_api import _HTTPConnection
+        one = _HTTPConnection(host='ex.example.com')
+        self.assertRaises(AssertionError, one._get_path, 'http://ex.example.com/abc?x=55')
+        self.assertRaises(AssertionError, one._get_path, 'https://exe.example.com/abc?x=55')
+        path = one._get_path('https://ex.example.com/abc?x=55')
+        self.assertEqual(path, '/abc?x=55')
