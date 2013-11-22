@@ -80,6 +80,42 @@ class Retryable(Exception):
             _reraise(self.exc_info)
         raise
 
+def _httplib_response_to_dict(request, resp):
+    return dict(
+            status=resp.status,
+            headers=resp.getheaders(),
+            body=resp.read(),
+            reason=resp.reason)
+
+def write_body_to_file(response, outfile):
+    """Write a httplib response to an open file.
+
+    This will replace all data in outfile with the http response data.
+    """
+    # make sure the outfile is empty by seek/truncate
+    # we can be retried and don't want to rewrite
+    # half the data
+    outfile.seek(0)
+    outfile.truncate(0)
+    data = response.read(8192)
+    while data:
+        outfile.write(data)
+        data = response.read(8192)
+
+class _WriteToFile:
+
+    def __init__(self, outfile):
+        self.outfile = outfile
+
+    def __call__(self, request, resp):
+        d = dict(
+                status=resp.status,
+                headers=resp.getheaders(),
+                body=None,
+                reason=resp.reason)
+        write_body_to_file(resp, self.outfile)
+        return d
+
 class _HTTPConnection(object):
     """Mixing class deailing with a single HTTP/HTTPS connection.
 
@@ -94,7 +130,7 @@ class _HTTPConnection(object):
         self.logger = logger
         self._conn_factory = conn_factory
 
-    def http(self, method, url, body=None, headers=None, handler=None, outfile=None):
+    def http(self, method, url, body=None, headers=None, handler=None, http_handler=None):
         """Send a single HTTP request to the API.
 
         This is a low level method. It fails on all errors.
@@ -102,23 +138,14 @@ class _HTTPConnection(object):
         url = self._get_path(url)
         conn = self._get_conn()
         request = dict(method=method, host=self.host, url=url, body=body, headers=headers)
+        if http_handler is None:
+            http_handler = _httplib_response_to_dict
         if self.logger is not None:
             self.logger.debug('REQUEST:\n%s', pformat(request))
         try:
             conn.request(method, url, body=body, headers=headers)
             resp = conn.getresponse()
-            response = dict(
-                    status = resp.status,
-                    headers = resp.getheaders(),
-                    reason = resp.reason)
-            if outfile is None:
-                response['body'] = resp.read()
-            else:
-                response['body'] = None
-                data = resp.read(8192)
-                while data:
-                    outfile.write(data)
-                    data = resp.read(8192)
+            response = http_handler(request, resp)
         except:
             self._disconnect()
             if self.logger is not None:
@@ -219,7 +246,10 @@ class API(_HTTPConnection):
 
     def GET(self, url, outfile=None):
         """GET a resource"""
-        return self.request('GET', url, outfile=outfile)
+        kw = {}
+        if outfile is not None:
+            kw['http_handler'] = _WriteToFile(outfile)
+        return self.request('GET', url, **kw)
 
     def PUT(self, url, data):
         """PUT data to a resource"""
@@ -237,7 +267,7 @@ class API(_HTTPConnection):
         """PATCH a resource"""
         return self.request('PATCH', url, data)
 
-    def request(self, method, url, data=None, content_type=None, outfile=None):
+    def request(self, method, url, data=None, content_type=None, http_handler=None, handler=None):
         """Make an HTTP request to the API.
 
         The request will be retried on retryable errors (e.g. HTTP connection
@@ -253,7 +283,7 @@ class API(_HTTPConnection):
             headers['Authorization'] = self._auth_header(access_token)
         data, data_headers = self._serialize(data, content_type)
         headers.update(data_headers)
-        return self.conn.http_retry(method, url, body=data, headers=headers, handler=self.handle, outfile=outfile)
+        return self.conn.http_retry(method, url, body=data, headers=headers, handler=self.handle, http_handler=http_handler)
 
     def handle(self, request, response):
         handler = getattr(self, '_handle_status_%s' % response['status'], self._handle_error)
