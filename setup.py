@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 _here = os.path.dirname(__file__)
 
-f = open(os.path.join(_here, 'README.txt'), 'r')
+f = open(os.path.join(_here, 'README.md'), 'r')
 README = f.read()
 f.close()
 
