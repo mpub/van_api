@@ -111,6 +111,9 @@ class Spider:
             if 'download_url' in resp:
                 go_urls.add(resp['download_url'])
             if 'items' in resp:
+                if 'next' in resp:
+                    next_url = '%s?%s' % (url.split('?')[0], resp['next'])
+                    go_urls.add(next_url)
                 for item in resp['items']:
                     if isinstance(item, list):
                         url = item[0]
