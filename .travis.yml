@@ -5,3 +5,4 @@ script:
     - travis_retry tox
 notifications:
     email: false
+sudo: false
